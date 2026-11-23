@@ -60,6 +60,7 @@
 | 2026-11-20 | 기본본(디자인 없는 버전)에 해냄에듀 로고 추가: 왼쪽 위 제목 위, 책 미리보기와 같은 방식(다크 모드에선 흰 바탕). 빌드 시 assets/haenaem-logo.png를 넣음. 디자인 사본은 자체 머리글 로고 유지 |
 | 2026-11-23 | 해내미 업스케일 사용설명서 PDF 제작(A4 1쪽: 화면 캡처, 4단계 사용법, 크기 탭 표, 색상·형식, 팁). 크롬 헤드리스 `--print-to-pdf`로 출력(puppeteer 미설치) |
 | 2026-11-23 | 해내미 업스케일 오프라인화: CDN 라이브러리 5종+lcms.wasm을 HTML에 내장(기본본·디자인본 8.6MB). 네트워크 전부 차단한 크롬에서 AI(그래픽카드)·CMYK 변환·TIFF 저장·ZIP 저장 정상 확인. 설명서의 인터넷 안내 문구 수정 |
+| 2026-11-23 | GitHub 공개 저장소(image-automation)에 업로드, 자동 커밋·푸시 시작. 도구 3종을 https://haenaem-tools.vercel.app 에 배포(/upscale, /book-preview, /pdf-check, 저장소 haenaem-tools → Vercel 자동 배포) |
 
 ## 메모 / 참고자료
 - 감지 순서: 재단선 표시 → PDF TrimBox → 그림 영역−도련 → 페이지−도련. 책등: 접지선 → 가운데 색 경계 추정 → 입력값
@@ -71,3 +72,9 @@
 - 참고: https://lab.ag.co.kr/notbad/mockup-generator/ (JS 렌더링 페이지라 자동으로는 내용 확인 불가)
 - 해내미 업스케일 수정: `자료/해내미 업스케일/src/`(template.html, worker.js) 편집 → `node "자료/해내미 업스케일/build.js"` 실행하면 모델·ICC를 넣어 `결과물/해내미 업스케일.html`(약 6.4MB) 생성. 결과물 HTML을 직접 고치지 말 것. 디자인 사본은 `src/design/`(design.css, apply.js)에서 수정, 로고는 assets/haenaem-logo.png, 타이틀은 assets/title.png(타이틀.ai를 렌더)
 - 해내미 업스케일 구조: AI는 4배 고정 모델 → 목표 크기로 Lanczos 조정. 인쇄용은 판형 mm × dpi로 픽셀 계산. CMYK 원본+AI 끔+CMYK 저장이면 색 왕복 변환 없이 CMYK 그대로 크기 조정. 라이브러리(tfjs 4.22.0, lcms-wasm 1.0.5+wasm, utif 3.1.0, pako 2.1.0, jszip 3.10.1)는 `assets/vendor/`에 받아 두고 빌드 때 HTML 안에 넣음 → 인터넷 없이 작동(구글 폰트만 오프라인 시 맑은 고딕으로 대체). lcms는 blob 모듈로 import + wasmBinary 직접 전달
+
+## Git / 배포
+- 작업 후 커밋·푸시는 자동으로 한다 (사용자 지시, 2026-11-23). 저장소는 **공개** → 비밀번호·키 등은 절대 올리지 말 것
+- 이미지자동화 → github.com/dorywlsud-del/image-automation, 인쇄체크리스트 → github.com/dorywlsud-del/print-checklist
+- 사이트: https://haenaem-tools.vercel.app (/upscale, /book-preview, /pdf-check). 도구 HTML(결과물)이 바뀌면 `work/haenaem-tools`에서 `node 업데이트.js` → 커밋·푸시하면 Vercel 사이트가 자동 갱신
+- PDF·.ai가 깨지지 않도록 `.gitattributes`(`* -text`)·core.autocrlf=false 유지
