@@ -227,7 +227,7 @@ main{position:relative;display:flex;flex-direction:column;min-width:0;min-height
       <button data-l="stack">쌓아서</button>
       <button data-l="tilt">기울여</button>
     </div>
-    <p class="hint">화면을 드래그해 돌리고, 휠로 확대·축소할 수 있어요. 아래 <b>확대</b>·<b>화각</b>으로 보이는 범위를 조절할 수 있어요.</p>
+    <p class="hint">화면을 드래그해 돌리고, 휠로 확대·축소할 수 있어요. 아래 <b>책등 보이기</b>·<b>책등 강조</b>로 표지와 책등이 함께 크게 보이게 할 수 있어요.</p>
     <div class="row"><label>표지 마감</label>
       <div class="seg" id="finishSeg"><button data-v="matte" class="on">무광</button><button data-v="satin">반광</button><button data-v="gloss">유광</button></div>
     </div>
@@ -244,9 +244,10 @@ main{position:relative;display:flex;flex-direction:column;min-width:0;min-height
     <div class="row"><label></label><label class="chk"><input type="checkbox" id="bgTransparent"> 투명 배경 (PNG)</label></div>
     <div class="row"><label>그림자</label><input type="range" id="shadow" min="0" max="100" value="45"></div>
     <div class="row"><label>조명 방향</label><input type="range" id="lightAng" min="-80" max="80" value="-35"></div>
-    <div class="row"><label>확대</label><input type="range" id="camZoom" min="40" max="250" value="100" title="작게 하면 주변이 더 넓게 보이고, 크게 하면 책이 크게 보여요"><span class="val" id="camZoomV">100%</span></div>
-    <div class="row"><label>화각</label><input type="range" id="camFov" min="12" max="80" value="28" title="크게 하면 광각(넓게·원근 강조), 작게 하면 망원(좁게·평평하게)"><span class="val" id="camFovV">28°</span></div>
-    <div class="row"><label></label><button class="btn sm" id="camReset">확대·화각 처음대로</button></div>
+    <div class="row"><label>책등 보이기</label><input type="range" id="camSpine" min="0" max="75" value="34" title="오른쪽으로 갈수록 책등(세네카)이 넓게 보여요"><span class="val" id="camSpineV">34°</span></div>
+    <div class="row"><label>책등 강조</label><input type="range" id="spineBoost" min="0" max="70" value="0" title="책등 면을 앞쪽으로 비틀어, 표지를 정면에 가깝게 둔 채로 책등도 넓게 보이게 해요 (실제 비율보다 과장)"><span class="val" id="spineBoostV">0°</span></div>
+    <div class="row"><label>크기</label><input type="range" id="camZoom" min="50" max="200" value="100" title="화면 안에서 책 크기"><span class="val" id="camZoomV">100%</span></div>
+    <div class="row"><label></label><button class="btn sm" id="camHero">표지·책등 함께 보기</button><button class="btn sm" id="camReset">처음대로</button></div>
     <div class="row"><label></label><label class="chk"><input type="checkbox" id="autoRotate"> 자동 회전</label></div>
   </section>
 
@@ -1042,11 +1043,11 @@ const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 scene.environmentIntensity = 0.55;
 
-const BASE_FOV = 28; // 구도 프리셋의 거리 계산 기준 화각 (화각 슬라이더와 별개)
+const BASE_FOV = 28;
 const camera = new THREE.PerspectiveCamera(BASE_FOV, 1, 0.05, 200);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true; controls.dampingFactor = 0.08;
-controls.minDistance = 1; controls.maxDistance = 40;
+controls.minDistance = 0.3; controls.maxDistance = 40;
 controls.maxPolarAngle = Math.PI / 2 - 0.02;
 controls.autoRotateSpeed = 1.2;
 
@@ -1244,7 +1245,10 @@ function rebuildBook() {
   }
 
   inner.scale.setScalar(0.01);
-  const tpl = new THREE.Group(); tpl.add(inner);
+  // 책등 강조: 앞표지는 그대로 두고 뒤쪽을 책등 방향으로 밀어 책등 면이 앞을 향하게 함
+  const shear = new THREE.Group(); shear.matrixAutoUpdate = false; shear.userData.shear = { D: D / 100, s };
+  shear.add(inner); applyShear(shear);
+  const tpl = new THREE.Group(); tpl.add(shear);
   dims = { W: W / 100, H: H / 100, D: D / 100 };
   if (bookTemplate) disposeTree(bookTemplate);
   bookTemplate = tpl;
@@ -1266,7 +1270,7 @@ function applyFinish() {
 let tween = null, firstLayout = true;
 controls.addEventListener('start', () => { tween = null; });
 function camFor(target, azDeg, elDeg, spanW, spanH) {
-  const fov = THREE.MathUtils.degToRad(BASE_FOV), t = Math.tan(fov / 2);
+  const fov = THREE.MathUtils.degToRad(camera.fov), t = Math.tan(fov / 2);
   const aspect = camera.aspect || 1;
   const dist = Math.max(spanH / (2 * t), spanW / (2 * t * aspect)) * 1.18 + Math.max(spanW, spanH) * 0.15;
   const az = THREE.MathUtils.degToRad(azDeg), el = THREE.MathUtils.degToRad(elDeg);
@@ -1346,14 +1350,40 @@ $('bgTransparent').addEventListener('change', () => setBg($('bgColor').value));
 $('shadow').addEventListener('input', e => { ground.material.opacity = e.target.value / 100 * 0.6; });
 $('lightAng').addEventListener('input', placeLights);
 $('autoRotate').addEventListener('change', e => { controls.autoRotate = e.target.checked; });
-/* 확대·화각: 카메라 위치는 그대로, 보이는 범위만 바꿈 (구도를 바꿔도 유지) */
-function applyCamView() {
-  camera.zoom = $('camZoom').value / 100; camera.fov = +$('camFov').value; camera.updateProjectionMatrix();
-  $('camZoomV').textContent = $('camZoom').value + '%'; $('camFovV').textContent = $('camFov').value + '°';
+/* 책등 보이기·입체감·크기 — 책등(세네카)과 앞표지가 함께 크게 보이도록 */
+const camOffset = () => camera.position.clone().sub(controls.target);
+function syncCamUI() { // 마우스로 돌렸을 때 슬라이더도 따라감
+  const o = camOffset(), sg = S.rtl ? -1 : 1;
+  const az = THREE.MathUtils.radToDeg(Math.atan2(o.x, o.z)) * -sg;
+  $('camSpine').value = Math.max(0, Math.min(75, Math.round(az)));
+  $('camSpineV').textContent = $('camSpine').value + '°';
 }
-$('camZoom').addEventListener('input', applyCamView);
-$('camFov').addEventListener('input', applyCamView);
-$('camReset').addEventListener('click', () => { $('camZoom').value = 100; $('camFov').value = BASE_FOV; applyCamView(); });
+controls.addEventListener('change', syncCamUI);
+$('camSpine').addEventListener('input', () => { // 높이·거리는 그대로, 옆으로만 돌림
+  tween = null;
+  const o = camOffset(), d = o.length(), el = Math.asin(o.y / d), sg = S.rtl ? -1 : 1;
+  const az = THREE.MathUtils.degToRad(-$('camSpine').value * sg);
+  camera.position.set(controls.target.x + d * Math.cos(el) * Math.sin(az), controls.target.y + d * Math.sin(el), controls.target.z + d * Math.cos(el) * Math.cos(az));
+  controls.update();
+});
+function applyShear(g) {
+  const { D, s: sg } = g.userData.shear, k = Math.tan(THREE.MathUtils.degToRad(+$('spineBoost').value)) * sg;
+  g.matrix.set(1, 0, k, -k * D / 2, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1); // x' = x + k(z - D/2)
+  g.matrixWorldNeedsUpdate = true;
+}
+$('spineBoost').addEventListener('input', () => {
+  $('spineBoostV').textContent = $('spineBoost').value + '°';
+  [bookTemplate, booksGroup].forEach(root => root && root.traverse(o => { if (o.userData.shear) applyShear(o); }));
+});
+$('camHero').addEventListener('click', () => { // 참고 이미지처럼: 표지는 거의 정면, 책등은 넓게
+  $('spineBoost').value = 55; $('spineBoost').dispatchEvent(new Event('input'));
+  $('camSpine').value = 16; $('camSpine').dispatchEvent(new Event('input'));
+});
+$('camZoom').addEventListener('input', () => { camera.zoom = $('camZoom').value / 100; camera.updateProjectionMatrix(); $('camZoomV').textContent = $('camZoom').value + '%'; });
+$('camReset').addEventListener('click', () => {
+  $('spineBoost').value = 0; $('spineBoost').dispatchEvent(new Event('input')); $('camZoom').value = 100; $('camZoomV').textContent = '100%';
+  camera.fov = BASE_FOV; camera.zoom = 1; camera.updateProjectionMatrix(); setLayout(S.layout, true);
+});
 ground.material.opacity = 45 / 100 * 0.6;
 setBg('#f2f0eb');
 
