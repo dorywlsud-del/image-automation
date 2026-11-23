@@ -1,0 +1,1243 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>해내미 업스케일</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<!-- 라이브러리는 빌드 때 파일 안에 넣음 (인터넷 없이 작동) -->
+<script>/*__TFJS__*/</script>
+<script>/*__PAKO__*/</script>
+<script>/*__UTIF__*/</script>
+<script>/*__JSZIP__*/</script>
+<style>
+:root{
+  --bg:#efede8; --panel:#fbfaf7; --line:#e1ded6; --text:#1f1e1b; --muted:#7a766d;
+  --accent:#2c56e0; --accent-soft:#e7ecff; --ok:#1d8048; --ok-soft:#e3f4ea;
+  --warn:#a86400; --warn-soft:#fdf1dc; --err:#c22d2d; --err-soft:#fde6e6;
+  --field:#ffffff; --stage:#e6e3dc;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141414; --panel:#1c1c1b; --line:#323130; --text:#ecebe8; --muted:#9d998f;
+    --accent:#7593ff; --accent-soft:#222b47; --ok:#5cc58a; --ok-soft:#18301f;
+    --warn:#f0b75a; --warn-soft:#352812; --err:#ff7b7b; --err-soft:#3a1c1c;
+    --field:#252524; --stage:#232322;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141414; --panel:#1c1c1b; --line:#323130; --text:#ecebe8; --muted:#9d998f;
+  --accent:#7593ff; --accent-soft:#222b47; --ok:#5cc58a; --ok-soft:#18301f;
+  --warn:#f0b75a; --warn-soft:#352812; --err:#ff7b7b; --err-soft:#3a1c1c;
+  --field:#252524; --stage:#232322;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--text);font:14px/1.5 "Noto Sans KR","Malgun Gothic",system-ui,sans-serif;
+  display:grid;grid-template-columns:360px 1fr;height:100vh;overflow:hidden}
+aside{background:var(--panel);border-right:1px solid var(--line);overflow-y:auto;padding:20px 18px 40px}
+.brand{margin:0 0 12px}
+.brand-logo{display:block;height:34px;width:auto}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .brand-logo{background:#fff;padding:6px 10px;border-radius:8px;box-sizing:content-box}}
+:root[data-theme="dark"] .brand-logo{background:#fff;padding:6px 10px;border-radius:8px;box-sizing:content-box}
+h1{font-size:19px;margin:0 0 2px;letter-spacing:-.02em}
+.sub{color:var(--muted);font-size:12px;margin:0 0 16px}
+section{border-top:1px solid var(--line);padding:14px 0 6px}
+section h2{font-size:12px;font-weight:700;color:var(--muted);margin:0 0 10px;letter-spacing:.04em}
+.drop{display:block;border:1.5px dashed var(--line);border-radius:10px;padding:16px 12px;text-align:center;cursor:pointer;transition:.15s;background:var(--field)}
+.drop:hover,.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop b{display:block;font-size:14px}
+.drop span{font-size:12px;color:var(--muted)}
+.files{list-style:none;margin:8px 0 0;padding:0;max-height:180px;overflow-y:auto}
+.files li{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid transparent;border-radius:8px;cursor:pointer;font-size:12.5px}
+.files li:hover{background:var(--field)}
+.files li.on{border-color:var(--accent);background:var(--accent-soft)}
+.files .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.files .meta{color:var(--muted);font-size:11px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.files .x{border:0;background:none;color:var(--muted);cursor:pointer;font-size:14px;padding:0 2px;line-height:1}
+.files .x:hover{color:var(--err)}
+.badge{display:inline-block;font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:5px;background:var(--line);color:var(--text)}
+.badge.cmyk{background:#00a3c4;color:#fff}
+.badge.done{background:var(--ok-soft);color:var(--ok)}
+.row{display:flex;align-items:center;gap:8px;margin:8px 0}
+.row>label{flex:0 0 auto;font-size:13px;color:var(--muted);min-width:68px}
+input[type=number],select,input[type=text]{background:var(--field);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:5px 7px;font:inherit;font-size:13px;width:100%;min-width:0}
+input[type=number]{font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.status{border-radius:8px;padding:9px 11px;font-size:12.5px;margin:6px 0 8px;background:var(--accent-soft)}
+.status.ok{background:var(--ok-soft);color:var(--ok)}
+.status.warn{background:var(--warn-soft);color:var(--warn)}
+.status.err{background:var(--err-soft);color:var(--err)}
+.readout{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}
+.readout div{background:var(--field);border:1px solid var(--line);border-radius:8px;padding:7px 9px}
+.readout small{display:block;font-size:11px;color:var(--muted)}
+.readout b{font-size:14px;font-variant-numeric:tabular-nums}
+.readout .full{grid-column:1/-1}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;width:100%}
+.seg button{flex:1;border:0;background:var(--field);color:var(--text);padding:6px 4px;font:inherit;font-size:12.5px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button.on{background:var(--accent);color:#fff}
+.seg button:disabled{opacity:.4;cursor:not-allowed}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px 8px}
+.f small{display:block;font-size:11px;color:var(--muted);margin-bottom:2px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{border:1px solid var(--line);background:var(--field);color:var(--text);border-radius:999px;padding:4px 10px;font:inherit;font-size:12px;cursor:pointer}
+.chips button.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:500}
+.hint{font-size:11.5px;color:var(--muted);margin:4px 0 6px}
+.check{display:flex;align-items:center;gap:6px;font-size:13px;margin:6px 0;cursor:pointer}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--field);color:var(--text);border-radius:8px;padding:8px 12px;font:inherit;font-size:13px;cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:500}
+.btn.wide{width:100%}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.actions .wide2{grid-column:1/-1}
+.mode-pane{margin-top:8px}
+main{position:relative;display:flex;flex-direction:column;min-width:0;background:var(--stage)}
+.toolbar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--panel);font-size:12.5px}
+.toolbar .sp{flex:1}
+.toolbar .info{color:var(--muted);font-variant-numeric:tabular-nums}
+.toolbar .btn{padding:5px 10px;font-size:12.5px}
+.viewer{position:relative;flex:1;min-height:0;overflow:hidden}
+.viewer canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none}
+.viewer canvas.dragging{cursor:grabbing}
+.viewer canvas.split{cursor:ew-resize}
+.empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted);text-align:center;gap:6px;pointer-events:none}
+.empty b{font-size:18px;color:var(--text)}
+.overlay{position:absolute;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:5}
+.ovbox{background:var(--panel);border-radius:12px;padding:18px 20px;width:min(380px,90%);box-shadow:0 10px 40px rgba(0,0,0,.25)}
+.ovbox b{display:block;margin-bottom:4px}
+.ovbox .step{font-size:12.5px;color:var(--muted);margin-bottom:10px;min-height:1.5em}
+.bar{height:8px;border-radius:99px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .15s}
+.ovbox .btn{margin-top:12px}
+.engine{font-size:11.5px;color:var(--muted);margin-top:14px;line-height:1.6}
+.engine i{font-style:normal;display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--muted);margin-right:5px;vertical-align:1px}
+.engine i.ok{background:var(--ok)} .engine i.err{background:var(--err)} .engine i.wait{background:var(--warn)}
+@media (max-width:820px){
+  body{grid-template-columns:1fr;grid-template-rows:auto 60vh;overflow:auto;height:auto}
+  aside{border-right:0;border-bottom:1px solid var(--line);padding:16px}
+  main{min-height:60vh}
+}
+</style>
+</head>
+<body>
+<aside>
+  <div class="brand"><img class="brand-logo" src="data:image/png;base64,/*__LOGO__*/" alt="해냄에듀"></div>
+  <h1>해내미 업스케일</h1>
+  <p class="sub">AI 화질 개선 · 화면용/인쇄용 해상도 · RGB ↔ CMYK 변환</p>
+
+  <section>
+    <h2>1. 이미지 넣기</h2>
+    <label class="drop" id="drop">
+      <b>이미지를 끌어다 놓거나 클릭</b>
+      <span>JPG · PNG · TIFF · WEBP · BMP (CMYK JPG/TIFF 포함, 여러 장 가능)</span>
+      <input type="file" id="fileInput" accept="image/*,.tif,.tiff" multiple hidden>
+    </label>
+    <ul class="files" id="fileList"></ul>
+  </section>
+
+  <section>
+    <h2>2. 화질 개선 (AI)</h2>
+    <div class="seg" id="aiSeg">
+      <button data-v="off">사용 안 함</button>
+      <button data-v="photo" class="on">사진 · 일반</button>
+      <button data-v="illust">일러스트 · 만화</button>
+    </div>
+    <div id="aiOpts">
+      <div class="row"><label>AI 강도</label><input type="range" id="aiStrength" min="0" max="100" value="100"><span id="aiStrengthV" style="width:38px;text-align:right;font-size:12px">100%</span></div>
+      <p class="hint">AI가 4배로 키우며 흐림·노이즈·압축 자국을 정리한 뒤, 아래에서 정한 크기에 맞춥니다. 강도를 낮추면 원본 느낌이 섞입니다.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>3. 크기 · 해상도</h2>
+    <div class="seg" id="sizeSeg">
+      <button data-v="scale" class="on">배율</button>
+      <button data-v="screen">화면용</button>
+      <button data-v="print">인쇄용</button>
+      <button data-v="custom">직접 지정</button>
+    </div>
+
+    <div class="mode-pane" data-mode="scale">
+      <div class="chips" id="scaleChips">
+        <button data-v="1">1배 (화질만)</button><button data-v="2" class="on">2배</button><button data-v="3">3배</button><button data-v="4">4배</button>
+      </div>
+      <div class="row"><label>배율</label><input type="number" id="scaleVal" value="2" min="0.1" max="16" step="0.1"></div>
+    </div>
+
+    <div class="mode-pane" data-mode="screen" hidden>
+      <div class="seg" id="screenAutoSeg"><button data-v="1" class="on">자동 (정비율)</button><button data-v="0">긴 변 고르기</button></div>
+      <p class="hint" id="screenAutoHint"></p>
+      <div id="screenManual" hidden>
+      <p class="hint">긴 변 기준 픽셀 수 (모니터·웹·발표 자료용, 72dpi로 저장)</p>
+      <div class="chips" id="screenChips">
+        <button data-v="1280">1280 (HD)</button><button data-v="1920" class="on">1920 (FHD)</button><button data-v="2560">2560 (QHD)</button><button data-v="3840">3840 (4K)</button>
+      </div>
+      <div class="row"><label>긴 변</label><input type="number" id="screenLong" value="1920" min="16" max="20000"><span style="font-size:12px;color:var(--muted)">px</span></div>
+      </div>
+    </div>
+
+    <div class="mode-pane" data-mode="print" hidden>
+      <div class="row"><label>해상도</label>
+        <div class="seg" id="dpiSeg"><button data-v="300" class="on">300dpi</button><button data-v="350">350dpi</button><button data-v="600">600dpi</button></div>
+      </div>
+      <div class="seg" id="printAutoSeg"><button data-v="1" class="on">자동 (정비율)</button><button data-v="0">판형 고르기</button></div>
+      <p class="hint" id="printAutoHint"></p>
+      <div id="printManual" hidden>
+      <div class="row"><label>판형</label>
+        <select id="paper">
+          <option value="210x297">A4 (210×297)</option>
+          <option value="148x210">A5 · 국판 (148×210)</option>
+          <option value="297x420">A3 (297×420)</option>
+          <option value="182x257">B5 (182×257)</option>
+          <option value="257x364">B4 (257×364)</option>
+          <option value="152x225">신국판 (152×225)</option>
+          <option value="176x248">크라운판 (176×248)</option>
+          <option value="188x257">4×6배판 (188×257)</option>
+          <option value="128x188">4×6판 (128×188)</option>
+          <option value="custom">직접 입력 (mm)</option>
+        </select>
+      </div>
+      <div class="grid2" id="paperCustom" hidden>
+        <div class="f"><small>가로 (mm)</small><input type="number" id="paperW" value="100" min="1" step="0.1"></div>
+        <div class="f"><small>세로 (mm)</small><input type="number" id="paperH" value="100" min="1" step="0.1"></div>
+      </div>
+      <div class="row"><label>맞춤</label>
+        <div class="seg" id="fitSeg"><button data-v="width" class="on">가로 맞춤</button><button data-v="height">세로 맞춤</button><button data-v="contain">안에 맞춤</button></div>
+      </div>
+      <label class="check"><input type="checkbox" id="autoOrient" checked> 이미지 방향에 맞춰 판형 가로/세로 자동 회전</label>
+      <label class="check"><input type="checkbox" id="bleed"> 도련 포함 (사방 <input type="number" id="bleedMm" value="3" min="0" max="20" step="0.5" style="width:52px;padding:2px 4px"> mm)</label>
+      </div>
+    </div>
+
+    <div class="mode-pane" data-mode="custom" hidden>
+      <div class="row"><label>단위</label>
+        <div class="seg" id="unitSeg"><button data-v="px" class="on">px</button><button data-v="mm">mm</button><button data-v="pct">%</button></div>
+      </div>
+      <div class="grid2">
+        <div class="f"><small id="cwLabel">가로 (px)</small><input type="number" id="cw" min="1" step="1"></div>
+        <div class="f"><small id="chLabel">세로 (px)</small><input type="number" id="chh" min="1" step="1"></div>
+      </div>
+      <label class="check"><input type="checkbox" id="lockRatio" checked> 비율 유지</label>
+      <div class="row"><label>저장 dpi</label><input type="number" id="customDpi" value="300" min="1" max="4800"></div>
+    </div>
+
+    <div class="readout" id="readout"></div>
+    <div id="sizeNote"></div>
+  </section>
+
+  <section>
+    <h2>4. 색상 · 저장 형식</h2>
+    <div class="row"><label>색상</label>
+      <div class="seg" id="colorSeg"><button data-v="rgb" class="on">RGB</button><button data-v="cmyk">CMYK</button></div>
+    </div>
+    <div id="cmykOpts" hidden>
+      <div class="row"><label>프로파일</label><select id="profileSel"></select></div>
+      <div class="row"><label>변환 방식</label>
+        <select id="intentSel">
+          <option value="1">상대 색도 + 검정점 보정 (포토샵 기본)</option>
+          <option value="0">지각적 (색 차이를 부드럽게)</option>
+        </select>
+      </div>
+      <label class="btn wide" style="margin-top:2px">인쇄소 ICC 프로파일 불러오기 (.icc/.icm)<input type="file" id="iccInput" accept=".icc,.icm" hidden></label>
+    </div>
+    <div id="srcColorNote"></div>
+    <div class="row"><label>형식</label>
+      <div class="seg" id="fmtSeg"><button data-v="jpg" class="on">JPG</button><button data-v="png">PNG</button><button data-v="tiff">TIFF</button><button data-v="pdf">PDF</button></div>
+    </div>
+    <div class="row" id="qualityRow"><label>JPG 품질</label><input type="range" id="quality" min="60" max="100" value="95"><span id="qualityV" style="width:30px;text-align:right;font-size:12px">95</span></div>
+    <p class="hint" id="fmtHint"></p>
+
+    <div class="actions">
+      <button class="btn primary wide2" id="runBtn" disabled>미리보기 만들기</button>
+      <button class="btn" id="saveBtn" disabled>이 파일 저장</button>
+      <button class="btn" id="saveAllBtn" disabled>전체 저장 (ZIP)</button>
+    </div>
+  </section>
+
+  <div class="engine" id="engine">
+    <div><i id="eAi" class="wait"></i>AI 엔진: <span id="eAiT">불러오는 중…</span></div>
+    <div><i id="eCms" class="wait"></i>색 관리(LittleCMS): <span id="eCmsT">필요할 때 불러옴</span></div>
+    <div style="margin-top:6px">모든 처리는 이 컴퓨터 안에서만 이뤄지며, 이미지는 외부로 전송되지 않습니다.</div>
+  </div>
+</aside>
+
+<main>
+  <div class="toolbar">
+    <span id="viewLabel" class="info">원본 | 결과 — 가운데 선을 끌어 비교</span>
+    <span class="sp"></span>
+    <span class="info" id="zoomInfo"></span>
+    <button class="btn" id="zoomFit">화면 맞춤</button>
+    <button class="btn" id="zoom100">100%</button>
+  </div>
+  <div class="viewer" id="viewer">
+    <canvas id="cv"></canvas>
+    <div class="empty" id="empty"><b>이미지를 넣어 주세요</b><span>왼쪽에 끌어다 놓거나, 이 화면에 바로 놓아도 됩니다.</span></div>
+    <div class="overlay" id="overlay" hidden>
+      <div class="ovbox">
+        <b id="ovTitle">처리 중</b>
+        <div class="step" id="ovStep"></div>
+        <div class="bar"><i id="ovBar"></i></div>
+        <button class="btn wide" id="cancelBtn">취소</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script type="text/plain" id="workerSrc">/*__WORKER__*/</script>
+<script>
+/* jpeg-js 디코더 (MIT, https://github.com/jpeg-js/jpeg-js) — CMYK JPG 원본 값을 그대로 읽기 위해 사용 */
+const JpegLib = (function(){ var module = undefined; var window = undefined;
+/*__JPEGJS__*/
+return { JpegImage };
+})();
+</script>
+<script>
+'use strict';
+const PAYLOAD = /*__PAYLOAD__*/null;
+const LCMS = /*__LCMS__*/null; // { js: lcms-wasm 1.0.5 모듈 소스, wasm: base64 }
+const AI_MAX_PX = 120e6;      // AI 4배 중간 결과 최대 픽셀 수
+const OUT_MAX_PX = 200e6;     // 최종 결과 최대 픽셀 수
+const TILE = 192, TILE_PAD = 12;
+
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => [...document.querySelectorAll(s)];
+const tick = () => new Promise(r => setTimeout(r, 0));
+const fmtN = (n) => n.toLocaleString('ko-KR');
+const mm = (px, dpi) => px / dpi * 25.4;
+
+/* ================= 내장 데이터 풀기 ================= */
+async function unpack(b64) {
+  const bin = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  const ds = new Blob([bin]).stream().pipeThrough(new DecompressionStream('gzip'));
+  return new Uint8Array(await new Response(ds).arrayBuffer());
+}
+const unpackCache = new Map();
+function getAsset(key, b64) { if (!unpackCache.has(key)) unpackCache.set(key, unpack(b64)); return unpackCache.get(key); }
+const SRGB_ICC = Uint8Array.from(atob(PAYLOAD.srgb), c => c.charCodeAt(0));
+
+/* ================= 워커 ================= */
+const worker = new Worker(URL.createObjectURL(new Blob([$('#workerSrc').textContent], { type: 'text/javascript' })));
+let wSeq = 0; const wJobs = new Map();
+worker.onmessage = (e) => {
+  const m = e.data, j = wJobs.get(m.id); if (!j) return;
+  if (m.type === 'progress') j.onp && j.onp(m.p);
+  else if (m.type === 'done') { wJobs.delete(m.id); j.res(m.res); }
+  else if (m.type === 'error') { wJobs.delete(m.id); j.rej(new Error(m.message)); }
+};
+function work(op, args, onp, transfer) {
+  return new Promise((res, rej) => { const id = ++wSeq; wJobs.set(id, { res, rej, onp }); worker.postMessage({ id, op, args }, transfer || []); });
+}
+
+/* ================= AI 엔진 (Real-ESRGAN 계열, upscayl 모델) ================= */
+const F16 = (() => {
+  const t = new Float32Array(65536);
+  for (let h = 0; h < 65536; h++) {
+    const s = h & 0x8000 ? -1 : 1, e = (h >> 10) & 31, f = h & 1023;
+    t[h] = e === 0 ? s * Math.pow(2, -14) * (f / 1024) : e === 31 ? (f ? NaN : s * Infinity) : s * Math.pow(2, e - 15) * (1 + f / 1024);
+  }
+  return t;
+})();
+function parseNcnn(paramText, bin) {
+  const lines = paramText.trim().split(/\r?\n/).slice(2);
+  const dv = new DataView(bin.buffer, bin.byteOffset, bin.byteLength);
+  let off = 0; const layers = [];
+  const f32 = (n) => { const a = new Float32Array(n); for (let i = 0; i < n; i++) a[i] = dv.getFloat32(off + i * 4, true); off += n * 4; return a; };
+  for (const ln of lines) {
+    const t = ln.trim().split(/\s+/); if (!t[0]) continue;
+    const type = t[0], nIn = +t[2], nOut = +t[3];
+    const kv = {}; for (const p of t.slice(4 + nIn + nOut)) { const [k, v] = p.split('='); kv[k] = v; }
+    if (type === 'Convolution') {
+      const out = +kv[0], k = +kv[1], wc = +kv[6], inC = wc / (out * k * k);
+      const tag = dv.getUint32(off, true); off += 4;
+      let w;
+      if (tag === 0x01306b47) { w = new Float32Array(wc); for (let i = 0; i < wc; i++) w[i] = F16[dv.getUint16(off + i * 2, true)]; off += (wc * 2 + 3) & ~3; }
+      else if (tag === 0) w = f32(wc);
+      else throw new Error('지원하지 않는 모델 형식');
+      const bias = kv[5] === '1' ? f32(out) : new Float32Array(out);
+      layers.push({ type: 'conv', out, inC, k, w, bias });
+    } else if (type === 'PReLU') layers.push({ type: 'prelu', a: f32(+kv[0]) });
+    else if (type === 'PixelShuffle') layers.push({ type: 'ps', r: +kv[0] });
+  }
+  return layers;
+}
+const AI = { ready: false, backend: '', models: {} };
+async function initAI() {
+  try {
+    if (!window.tf) throw new Error('TensorFlow.js를 불러오지 못했습니다');
+    try { await tf.setBackend('webgl'); } catch (e) {}
+    await tf.ready();
+    AI.backend = tf.getBackend();
+    AI.ready = true;
+    const gpu = AI.backend === 'webgl';
+    setEngine('eAi', gpu ? 'ok' : 'wait', gpu ? '준비됨 (그래픽카드 사용)' : '준비됨 (CPU — 느릴 수 있음)');
+  } catch (e) {
+    setEngine('eAi', 'err', e.message);
+  }
+}
+async function getModel(key) {
+  if (AI.models[key]) return AI.models[key];
+  const def = PAYLOAD.models[key];
+  const bin = await getAsset('model_' + key, def.bin);
+  const layers = parseNcnn(def.param, bin);
+  const ps = layers.find(l => l.type === 'ps'); const r = ps ? ps.r : 1;
+  const lastConv = layers.filter(l => l.type === 'conv').pop();
+  const m = { scale: r, layers: [] };
+  for (const l of layers) {
+    if (l.type === 'conv') {
+      const { out, inC, k, w, bias } = l;
+      const isLast = l === lastConv && r > 1;
+      const C = out / (r * r);
+      const perm = (o) => isLast ? ((o % (r * r)) * C + Math.floor(o / (r * r))) : o; // PyTorch PixelShuffle → TF depthToSpace 순서
+      const tw = new Float32Array(k * k * inC * out), tb = new Float32Array(out);
+      for (let o = 0; o < out; o++) {
+        const no = perm(o); tb[no] = bias[o];
+        for (let i = 0; i < inC; i++) for (let y = 0; y < k; y++) for (let x = 0; x < k; x++)
+          tw[((y * k + x) * inC + i) * out + no] = w[((o * inC + i) * k + y) * k + x];
+      }
+      m.layers.push({ type: 'conv', w: tf.tensor4d(tw, [k, k, inC, out]), b: tf.tensor1d(tb) });
+    } else if (l.type === 'prelu') m.layers.push({ type: 'prelu', a: tf.tensor1d(l.a) });
+    else if (l.type === 'ps') m.layers.push({ type: 'ps', r: l.r });
+  }
+  AI.models[key] = m;
+  return m;
+}
+function runModel(m, x) {
+  return tf.tidy(() => {
+    let y = x;
+    for (const l of m.layers) {
+      if (l.type === 'conv') y = tf.add(tf.conv2d(y, l.w, 1, 'same'), l.b);
+      else if (l.type === 'prelu') y = tf.prelu(y, l.a);
+      else if (l.type === 'ps') y = tf.depthToSpace(y, l.r, 'NHWC');
+    }
+    const [, h, w] = x.shape;
+    const base = tf.image.resizeNearestNeighbor(x, [h * m.scale, w * m.scale]);
+    return tf.clipByValue(tf.add(y, base), 0, 1);
+  });
+}
+// rgb: Uint8Array (3채널) → 4배 RGB
+async function aiUpscale(rgb, w, h, key, onp, isCancelled) {
+  const m = await getModel(key); const S = m.scale;
+  const W = w * S, H = h * S;
+  const out = new Uint8Array(W * H * 3);
+  const nx = Math.ceil(w / TILE), ny = Math.ceil(h / TILE), total = nx * ny;
+  let done = 0;
+  for (let ty = 0; ty < ny; ty++) for (let tx = 0; tx < nx; tx++) {
+    if (isCancelled()) throw new Error('CANCEL');
+    const x0 = tx * TILE, y0 = ty * TILE, x1 = Math.min(w, x0 + TILE), y1 = Math.min(h, y0 + TILE);
+    const px0 = Math.max(0, x0 - TILE_PAD), py0 = Math.max(0, y0 - TILE_PAD), px1 = Math.min(w, x1 + TILE_PAD), py1 = Math.min(h, y1 + TILE_PAD);
+    const tw = px1 - px0, th = py1 - py0;
+    const inp = new Float32Array(tw * th * 3);
+    for (let y = 0; y < th; y++) { const so = ((py0 + y) * w + px0) * 3, io = y * tw * 3; for (let i = 0; i < tw * 3; i++) inp[io + i] = rgb[so + i] / 255; }
+    const t = tf.tensor4d(inp, [1, th, tw, 3]);
+    const r = runModel(m, t);
+    const d = await r.data();
+    t.dispose(); r.dispose();
+    const rw = tw * S;
+    for (let y = y0 * S; y < y1 * S; y++) {
+      const sy = y - py0 * S, oo = (y * W + x0 * S) * 3, so = (sy * rw + (x0 - px0) * S) * 3, n = (x1 - x0) * S * 3;
+      for (let i = 0; i < n; i++) { const v = d[so + i] * 255 + 0.5; out[oo + i] = v < 0 ? 0 : v > 255 ? 255 : v; }
+    }
+    done++; onp(done / total, done, total);
+    await tick();
+  }
+  return { data: out, w: W, h: H };
+}
+
+/* ================= 색 관리 (LittleCMS) ================= */
+const CMS = { L: null, loading: null, handles: new Map(), xforms: new Map() };
+const TYPE_RGB_8 = 0x40019, TYPE_RGBA_8 = 0x40099, TYPE_CMYK_8 = 0x60021;
+const PROFILES = [
+  { key: 'jc2001c', name: 'Japan Color 2001 Coated', note: '국내 출판 일반 (아트지·스노우지 등 코팅지)' },
+  { key: 'jc2001u', name: 'Japan Color 2001 Uncoated', note: '모조지 등 비코팅지' },
+  { key: 'fogra39', name: 'Coated FOGRA39', note: '유럽 표준 코팅지 (ISO Coated v2)' },
+];
+async function initCMS() {
+  if (CMS.L) return CMS.L;
+  if (!CMS.loading) CMS.loading = (async () => {
+    setEngine('eCms', 'wait', '불러오는 중…');
+    try {
+      const url = URL.createObjectURL(new Blob([LCMS.js], { type: 'text/javascript' }));
+      const mod = await import(url); URL.revokeObjectURL(url);
+      const wasmBinary = Uint8Array.from(atob(LCMS.wasm), c => c.charCodeAt(0));
+      CMS.L = await mod.instantiate({ wasmBinary });
+      CMS.srgb = CMS.L.cmsCreate_sRGBProfile();
+      setEngine('eCms', 'ok', '준비됨');
+      return CMS.L;
+    } catch (e) { setEngine('eCms', 'err', '불러오지 못함'); CMS.loading = null; throw e; }
+  })();
+  return CMS.loading;
+}
+async function profileBytes(key) {
+  if (key.startsWith('user:')) return userProfiles.get(key).bytes;
+  return getAsset('icc_' + key, PAYLOAD.icc[key]);
+}
+async function openProfile(bytes, cacheKey) {
+  const L = await initCMS();
+  if (cacheKey && CMS.handles.has(cacheKey)) return CMS.handles.get(cacheKey);
+  const h = L.cmsOpenProfileFromMem(bytes, bytes.length);
+  if (!h) throw new Error('ICC 프로파일을 읽을 수 없습니다');
+  if (cacheKey) CMS.handles.set(cacheKey, h);
+  return h;
+}
+function profileInfo(h) { const L = CMS.L; return { name: L.cmsGetProfileInfoASCII(h, 0, 'en', 'US'), space: L.cmsGetColorSpaceASCII(h).trim() }; }
+// src: Uint8Array, n 픽셀. 변환 후 새 배열 반환
+async function cmsRun(inH, inFmt, inCh, outH, outFmt, outCh, intent, src, n, onp) {
+  const L = await initCMS();
+  const key = [inH, inFmt, outH, outFmt, intent].join('/');
+  let xf = CMS.xforms.get(key);
+  if (!xf) {
+    xf = L.cmsCreateTransform(inH, inFmt, outH, outFmt, intent, 0x2000);
+    if (!xf) throw new Error('색 변환을 만들 수 없습니다');
+    CMS.xforms.set(key, xf);
+  }
+  const out = new Uint8Array(n * outCh);
+  const CH = 1 << 20;
+  const ip = L._malloc(CH * inCh), op = L._malloc(CH * outCh);
+  try {
+    for (let s = 0; s < n; s += CH) {
+      const c = Math.min(CH, n - s);
+      L.HEAPU8.set(src.subarray(s * inCh, (s + c) * inCh), ip);
+      L._cmsDoTransform(xf, ip, op, c);
+      out.set(L.HEAPU8.subarray(op, op + c * outCh), s * outCh);
+      onp && onp((s + c) / n);
+      await tick();
+    }
+  } finally { L._free(ip); L._free(op); }
+  return out;
+}
+async function cmykToSrgb(cmyk, n, iccBytes, iccKey, intent, onp) {
+  const h = await openProfile(iccBytes, iccKey);
+  return cmsRun(h, TYPE_CMYK_8, 4, CMS.srgb, TYPE_RGB_8, 3, intent, cmyk, n, onp);
+}
+async function rgbToSrgb(rgb, n, iccBytes, iccKey, onp) {
+  const h = await openProfile(iccBytes, iccKey);
+  return cmsRun(h, TYPE_RGB_8, 3, CMS.srgb, TYPE_RGB_8, 3, 0, rgb, n, onp);
+}
+
+/* ================= 파일 읽기 ================= */
+// 내부 이미지 형식: { w, h, mode:'rgb'|'cmyk', ch, data:Uint8Array, alpha:Uint8Array|null, icc, iccName, dpi }
+function sniff(u8) {
+  if (u8[0] === 0xff && u8[1] === 0xd8) return 'jpeg';
+  if (u8[0] === 0x89 && u8[1] === 0x50) return 'png';
+  if ((u8[0] === 0x49 && u8[1] === 0x49 && u8[2] === 42) || (u8[0] === 0x4d && u8[1] === 0x4d && u8[3] === 42)) return 'tiff';
+  return 'other';
+}
+function jpegInfo(u8) {
+  const info = { comps: 3, icc: null, dpi: null };
+  const iccParts = [];
+  let p = 2;
+  while (p < u8.length - 4) {
+    if (u8[p] !== 0xff) { p++; continue; }
+    const mk = u8[p + 1];
+    if (mk === 0xd8 || (mk >= 0xd0 && mk <= 0xd7) || mk === 0x01 || mk === 0xff) { p += mk === 0xff ? 1 : 2; continue; }
+    const len = (u8[p + 2] << 8) | u8[p + 3];
+    const s = p + 4;
+    if (mk === 0xe0 && u8[s] === 0x4a && u8[s + 1] === 0x46) { // JFIF
+      const units = u8[s + 7], xd = (u8[s + 8] << 8) | u8[s + 9];
+      if (units === 1 && xd > 1) info.dpi = xd; else if (units === 2 && xd > 1) info.dpi = Math.round(xd * 2.54);
+    }
+    if (mk === 0xe2 && String.fromCharCode(...u8.subarray(s, s + 11)) === 'ICC_PROFILE') iccParts.push({ seq: u8[s + 12], data: u8.subarray(s + 14, p + 2 + len) });
+    if (mk === 0xed && !info.dpi) { // Photoshop 해상도
+      for (let i = s; i < p + 2 + len - 16; i++) if (u8[i] === 0x38 && u8[i + 1] === 0x42 && u8[i + 2] === 0x49 && u8[i + 3] === 0x4d && u8[i + 4] === 0x03 && u8[i + 5] === 0xed) {
+        const nl = u8[i + 6]; let q = i + 6 + ((nl + 2) & ~1) + 4; const d = (u8[q] << 8) | u8[q + 1]; if (d > 1) info.dpi = d; break;
+      }
+    }
+    if (mk >= 0xc0 && mk <= 0xcf && mk !== 0xc4 && mk !== 0xc8 && mk !== 0xcc) { info.comps = u8[s + 5]; }
+    if (mk === 0xda) break;
+    p += 2 + len;
+  }
+  if (iccParts.length) {
+    iccParts.sort((a, b) => a.seq - b.seq);
+    const tot = iccParts.reduce((s, x) => s + x.data.length, 0); const b = new Uint8Array(tot); let o = 0;
+    for (const x of iccParts) { b.set(x.data, o); o += x.data.length; }
+    info.icc = b;
+  }
+  return info;
+}
+function iccSpace(icc) { return icc && icc.length > 20 ? String.fromCharCode(icc[16], icc[17], icc[18], icc[19]).trim() : ''; }
+function iccDesc(icc) {
+  try {
+    const dv = new DataView(icc.buffer, icc.byteOffset, icc.byteLength);
+    const n = dv.getUint32(128);
+    for (let i = 0; i < n; i++) {
+      const sig = dv.getUint32(132 + i * 12), off = dv.getUint32(136 + i * 12);
+      if (sig !== 0x64657363) continue;
+      const type = String.fromCharCode(icc[off], icc[off + 1], icc[off + 2], icc[off + 3]);
+      if (type === 'desc') { const l = dv.getUint32(off + 8); return String.fromCharCode(...icc.subarray(off + 12, off + 12 + l - 1)); }
+      if (type === 'mluc') { const sl = dv.getUint32(off + 20), so = dv.getUint32(off + 24); let s = ''; for (let k = 0; k < sl; k += 2) s += String.fromCharCode(dv.getUint16(off + so + k)); return s; }
+    }
+  } catch (e) {}
+  return '';
+}
+async function decodeFile(file) {
+  const buf = new Uint8Array(await file.arrayBuffer());
+  const kind = sniff(buf);
+  if (kind === 'jpeg') {
+    const info = jpegInfo(buf);
+    if (info.comps === 4) {
+      const J = new JpegLib.JpegImage();
+      J.opts = { colorTransform: undefined, useTArray: true, formatAsRGBA: false, tolerantDecoding: true, maxResolutionInMP: 500, maxMemoryUsageInMB: 4096 };
+      JpegLib.JpegImage.resetMaxMemoryUsage(4096 * 1024 * 1024);
+      J.parse(buf);
+      const data = J.getData(J.width, J.height); // CMYK 잉크량 (0=없음, 255=100%)
+      const icc = info.icc && iccSpace(info.icc) === 'CMYK' ? info.icc : null;
+      return { w: J.width, h: J.height, mode: 'cmyk', ch: 4, data, alpha: null, icc, iccName: icc ? iccDesc(icc) : '', dpi: info.dpi };
+    }
+    const img = await decodeBrowser(file);
+    img.dpi = info.dpi; return img;
+  }
+  if (kind === 'tiff') return decodeTiff(buf);
+  const img = await decodeBrowser(file);
+  if (kind === 'png') img.dpi = pngDpi(buf);
+  return img;
+}
+function pngDpi(u8) {
+  let p = 8; const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+  while (p < u8.length - 12) {
+    const len = dv.getUint32(p), type = String.fromCharCode(u8[p + 4], u8[p + 5], u8[p + 6], u8[p + 7]);
+    if (type === 'pHYs' && u8[p + 16] === 1) return Math.round(dv.getUint32(p + 8) * 0.0254);
+    if (type === 'IDAT') break;
+    p += 12 + len;
+  }
+  return null;
+}
+async function decodeBrowser(file) {
+  let bmp;
+  try { bmp = await createImageBitmap(file, { premultiplyAlpha: 'none', colorSpaceConversion: 'default' }); }
+  catch (e) { throw new Error('이 형식은 읽을 수 없습니다'); }
+  const c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height;
+  const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(bmp, 0, 0);
+  const id = x.getImageData(0, 0, c.width, c.height); bmp.close && bmp.close();
+  return fromRGBA(id.data, c.width, c.height);
+}
+function fromRGBA(rgba, w, h) {
+  const n = w * h; let hasA = false;
+  for (let i = 3; i < rgba.length; i += 4) if (rgba[i] !== 255) { hasA = true; break; }
+  if (hasA) return { w, h, mode: 'rgb', ch: 4, data: new Uint8Array(rgba.buffer.slice(0)), alpha: true, icc: null, dpi: null };
+  const d = new Uint8Array(n * 3);
+  for (let i = 0, j = 0; i < n; i++, j += 4) { d[i * 3] = rgba[j]; d[i * 3 + 1] = rgba[j + 1]; d[i * 3 + 2] = rgba[j + 2]; }
+  return { w, h, mode: 'rgb', ch: 3, data: d, alpha: false, icc: null, dpi: null };
+}
+async function decodeTiff(buf) {
+  if (!window.UTIF) throw new Error('TIFF 읽기 도구를 불러오지 못했습니다');
+  const ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+  const ifds = UTIF.decode(ab);
+  const ifd = ifds.find(i => i.t256 && !(i.t254 && (i.t254[0] & 1))) || ifds[0];
+  UTIF.decodeImage(ab, ifd, ifds);
+  const w = ifd.width, h = ifd.height, n = w * h;
+  const photo = ifd.t262 ? ifd.t262[0] : 2, bps = ifd.t258 ? ifd.t258[0] : 8, spp = ifd.t277 ? ifd.t277[0] : 1;
+  const planar = ifd.t284 ? ifd.t284[0] : 1;
+  let dpi = ifd.t282 ? ifd.t282[0] : null; if (dpi && ifd.t296 && ifd.t296[0] === 3) dpi *= 2.54; if (dpi) dpi = Math.round(dpi);
+  const icc = ifd.t34675 ? new Uint8Array(ifd.t34675) : null;
+  const raw = ifd.data;
+  if ((bps !== 8 && bps !== 16) || ![0, 1, 2, 5].includes(photo)) {
+    const rgba = UTIF.toRGBA8(ifd);
+    const img = fromRGBA(new Uint8ClampedArray(rgba.buffer), w, h); img.dpi = dpi; return img;
+  }
+  const B = bps / 8;
+  const sample = (i, c) => {
+    const idx = planar === 2 ? (c * n + i) * B : (i * spp + c) * B;
+    return B === 2 ? raw[idx + 1] : raw[idx];
+  };
+  if (photo === 5) {
+    const d = new Uint8Array(n * 4);
+    for (let i = 0; i < n; i++) for (let c = 0; c < 4; c++) d[i * 4 + c] = sample(i, c);
+    const ic = icc && iccSpace(icc) === 'CMYK' ? icc : null;
+    return { w, h, mode: 'cmyk', ch: 4, data: d, alpha: null, icc: ic, iccName: ic ? iccDesc(ic) : '', dpi };
+  }
+  const gray = photo <= 1;
+  const hasA = gray ? spp >= 2 : spp >= 4;
+  const ch = hasA ? 4 : 3;
+  const d = new Uint8Array(n * ch);
+  for (let i = 0; i < n; i++) {
+    if (gray) { let v = sample(i, 0); if (photo === 0) v = 255 - v; d[i * ch] = d[i * ch + 1] = d[i * ch + 2] = v; if (hasA) d[i * ch + 3] = sample(i, 1); }
+    else { d[i * ch] = sample(i, 0); d[i * ch + 1] = sample(i, 1); d[i * ch + 2] = sample(i, 2); if (hasA) d[i * ch + 3] = sample(i, 3); }
+  }
+  let img = { w, h, mode: 'rgb', ch, data: d, alpha: hasA, icc: null, dpi };
+  // RGB TIFF에 sRGB가 아닌 프로파일(예: Adobe RGB)이 있으면 sRGB로 변환
+  if (!gray && icc && iccSpace(icc) === 'RGB' && !/sRGB/i.test(iccDesc(icc))) {
+    try {
+      const rgb = ch === 4 ? stripAlpha(d, n) : d;
+      const conv = await rgbToSrgb(rgb, n, icc, null);
+      img.data = ch === 4 ? mergeAlpha(conv, d, n) : conv;
+      img.convertedFrom = iccDesc(icc);
+    } catch (e) {}
+  }
+  return img;
+}
+function stripAlpha(rgba, n) { const o = new Uint8Array(n * 3); for (let i = 0; i < n; i++) { o[i * 3] = rgba[i * 4]; o[i * 3 + 1] = rgba[i * 4 + 1]; o[i * 3 + 2] = rgba[i * 4 + 2]; } return o; }
+function alphaOf(rgba, n) { const o = new Uint8Array(n); for (let i = 0; i < n; i++) o[i] = rgba[i * 4 + 3]; return o; }
+function mergeAlpha(rgb, rgbaOrAlpha, n, isPlane) {
+  const o = new Uint8Array(n * 4);
+  for (let i = 0; i < n; i++) { o[i * 4] = rgb[i * 3]; o[i * 4 + 1] = rgb[i * 3 + 1]; o[i * 4 + 2] = rgb[i * 3 + 2]; o[i * 4 + 3] = isPlane ? rgbaOrAlpha[i] : rgbaOrAlpha[i * 4 + 3]; }
+  return o;
+}
+function flattenWhite(rgba, n) {
+  const o = new Uint8Array(n * 3);
+  for (let i = 0; i < n; i++) { const a = rgba[i * 4 + 3] / 255; for (let c = 0; c < 3; c++) o[i * 3 + c] = rgba[i * 4 + c] * a + 255 * (1 - a) + 0.5; }
+  return o;
+}
+
+/* ================= 상태 ================= */
+const S = {
+  ai: 'photo', aiStrength: 100,
+  size: 'scale', scale: 2, screenLong: 1920, screenAuto: 1, printAuto: 1,
+  printDpi: 300, paper: '210x297', paperW: 100, paperH: 100, fit: 'width', autoOrient: true, bleed: false, bleedMm: 3,
+  unit: 'px', cw: null, chh: null, lock: true, customDpi: 300,
+  color: 'rgb', profile: 'jc2001c', intent: 1,
+  fmt: 'jpg', quality: 95,
+};
+const items = []; let cur = null; let idSeq = 0;
+const userProfiles = new Map();
+let busy = false, cancelFlag = false;
+
+function curSrc() { return cur && cur.img; }
+function srcProfileOf(img) {
+  // CMYK 원본의 프로파일: 내장 프로파일이 있으면 그것, 없으면 선택된 프로파일로 가정
+  if (img.icc) return { bytes: img.icc, key: 'emb:' + cur.id, name: img.iccName || '내장 프로파일', embedded: true };
+  return null;
+}
+
+/* ================= 목표 크기 계산 ================= */
+function paperMM() {
+  let [pw, ph] = S.paper === 'custom' ? [S.paperW, S.paperH] : S.paper.split('x').map(Number);
+  return [pw, ph];
+}
+// 자동(정비율): AI를 쓰면 AI 최대 배율(4배), 끄면 원본 크기 그대로
+function autoFactor() { return S.ai === 'off' ? 1 : 4; }
+function computeTarget(img) {
+  const w = img.w, h = img.h;
+  let tw, th, dpi, note = '';
+  if (S.size === 'scale') {
+    const f = Math.max(0.01, S.scale || 1);
+    tw = w * f; th = h * f; dpi = img.dpi || 72;
+  } else if (S.size === 'screen') {
+    const f = S.screenAuto ? Math.min(autoFactor(), 3840 / Math.max(w, h)) : (S.screenLong || 1920) / Math.max(w, h);
+    tw = w * f; th = h * f; dpi = 72;
+  } else if (S.size === 'print' && S.printAuto) {
+    dpi = S.printDpi; const f = autoFactor();
+    tw = w * f; th = h * f;
+  } else if (S.size === 'print') {
+    dpi = S.printDpi;
+    let [pw, ph] = paperMM();
+    if (S.autoOrient && ((w > h) !== (pw > ph)) && pw !== ph) [pw, ph] = [ph, pw];
+    if (S.bleed) { pw += S.bleedMm * 2; ph += S.bleedMm * 2; }
+    const fw = (pw / 25.4 * dpi) / w, fh = (ph / 25.4 * dpi) / h;
+    const f = S.fit === 'width' ? fw : S.fit === 'height' ? fh : Math.min(fw, fh);
+    tw = w * f; th = h * f;
+    note = { pw, ph };
+  } else {
+    dpi = S.customDpi || 300;
+    let cw = S.cw, chh = S.chh;
+    if (S.unit === 'px') { tw = cw || w; th = chh || h; }
+    else if (S.unit === 'mm') { tw = (cw || mm(w, dpi)) / 25.4 * dpi; th = (chh || mm(h, dpi)) / 25.4 * dpi; }
+    else { tw = w * (cw || 100) / 100; th = h * (chh || 100) / 100; }
+  }
+  tw = Math.max(1, Math.round(tw)); th = Math.max(1, Math.round(th));
+  return { w: tw, h: th, dpi, scale: Math.max(tw / w, th / h), paper: note };
+}
+
+/* ================= 화면 갱신 ================= */
+function setEngine(id, cls, text) { const i = $('#' + id); i.className = cls; $('#' + id + 'T').textContent = text; }
+function segInit(id, key, onChange, numeric) {
+  $$(`#${id} button`).forEach(b => b.addEventListener('click', () => {
+    if (b.disabled) return;
+    $$(`#${id} button`).forEach(x => x.classList.toggle('on', x === b));
+    S[key] = numeric ? Number(b.dataset.v) : b.dataset.v;
+    onChange && onChange(); refresh();
+  }));
+}
+function segSet(id, v) { $$(`#${id} button`).forEach(x => x.classList.toggle('on', x.dataset.v === String(v))); }
+function chipsInit(id, key, input) {
+  $$(`#${id} button`).forEach(b => b.addEventListener('click', () => {
+    $$(`#${id} button`).forEach(x => x.classList.toggle('on', x === b));
+    S[key] = Number(b.dataset.v); $(input).value = b.dataset.v; refresh();
+  }));
+  $(input).addEventListener('input', () => {
+    S[key] = Number($(input).value);
+    $$(`#${id} button`).forEach(x => x.classList.toggle('on', Number(x.dataset.v) === S[key]));
+    refresh();
+  });
+}
+function refresh() {
+  $$('.mode-pane').forEach(p => p.hidden = p.dataset.mode !== S.size);
+  $('#aiOpts').hidden = S.ai === 'off';
+  $('#paperCustom').hidden = S.paper !== 'custom';
+  $('#screenManual').hidden = !!S.screenAuto; $('#screenAutoHint').hidden = !S.screenAuto;
+  $('#printManual').hidden = !!S.printAuto; $('#printAutoHint').hidden = !S.printAuto;
+  const offNote = S.ai === 'off' ? ' 지금은 AI를 꺼 두어서 원본 크기 그대로 만듭니다.' : '';
+  $('#screenAutoHint').textContent = '원본 비율 그대로 AI 최대 크기(4배)로 만듭니다. 긴 변이 3840px을 넘으면 3840px로 맞춥니다. 72dpi로 저장.' + offNote;
+  $('#printAutoHint').textContent = '원본 비율 그대로 AI 최대 크기(4배)로 만들고, 위에서 고른 해상도로 저장합니다. 인쇄할 수 있는 크기(mm)는 아래에 표시됩니다.' + offNote;
+  $('#cmykOpts').hidden = S.color !== 'cmyk';
+  // PNG는 CMYK 불가
+  const pngBtn = $('#fmtSeg button[data-v="png"]');
+  pngBtn.disabled = S.color === 'cmyk';
+  if (S.color === 'cmyk' && S.fmt === 'png') { S.fmt = 'jpg'; segSet('fmtSeg', 'jpg'); }
+  $('#qualityRow').hidden = S.fmt !== 'jpg';
+  const fh = {
+    jpg: S.color === 'cmyk' ? 'CMYK JPG — 포토샵·인디자인에서 바로 열림. ICC 프로파일과 해상도(dpi)가 함께 저장됩니다.' : '용량이 작아 화면·웹용에 적합합니다. 해상도(dpi) 정보가 함께 저장됩니다.',
+    png: '손실 없는 저장, 투명 배경 유지. 화면용 (인쇄소에는 TIFF/PDF 권장).',
+    tiff: '손실 없는 저장(ZIP 압축). 인쇄소 납품용으로 가장 무난합니다.' + (S.color === 'cmyk' ? ' ICC 프로파일 포함.' : ''),
+    pdf: '이미지 한 장을 실제 인쇄 크기의 PDF로 저장합니다(손실 없음).' + (S.color === 'cmyk' ? ' CMYK + 출력 인텐트 포함.' : ''),
+  };
+  $('#fmtHint').textContent = fh[S.fmt];
+  // 직접 지정 라벨
+  const u = { px: 'px', mm: 'mm', pct: '%' }[S.unit];
+  $('#cwLabel').textContent = `가로 (${u})`; $('#chLabel').textContent = `세로 (${u})`;
+  $('#cw').step = S.unit === 'px' ? 1 : 0.1; $('#chh').step = S.unit === 'px' ? 1 : 0.1;
+  updateReadout();
+  updateButtons();
+  markStale();
+}
+function updateButtons() {
+  const has = !!cur && !!cur.img;
+  $('#runBtn').disabled = !has || busy;
+  $('#saveBtn').disabled = !has || busy;
+  $('#saveAllBtn').disabled = !items.some(i => i.img) || busy;
+}
+function updateReadout() {
+  const img = curSrc(); const ro = $('#readout'), note = $('#sizeNote'), cn = $('#srcColorNote');
+  if (!img) { ro.innerHTML = ''; note.innerHTML = ''; cn.innerHTML = ''; return; }
+  const t = computeTarget(img);
+  const sdpi = img.dpi || 72;
+  let html = `<div><small>원본</small><b>${fmtN(img.w)} × ${fmtN(img.h)}</b></div>
+    <div><small>결과</small><b>${fmtN(t.w)} × ${fmtN(t.h)}</b></div>
+    <div><small>배율</small><b>${t.scale.toFixed(2)}배</b></div>
+    <div><small>저장 해상도</small><b>${t.dpi}dpi</b></div>`;
+  if (S.size === 'print' || S.size === 'custom') html += `<div class="full"><small>인쇄 크기 (${t.dpi}dpi 기준)</small><b>${mm(t.w, t.dpi).toFixed(1)} × ${mm(t.h, t.dpi).toFixed(1)} mm</b></div>`;
+  ro.innerHTML = html;
+  const msgs = [];
+  if (S.size === 'print' && S.printAuto) {
+    msgs.push(`<div class="status ok">${t.dpi}dpi로 최대 <b>${mm(t.w, t.dpi).toFixed(1)} × ${mm(t.h, t.dpi).toFixed(1)} mm</b>까지 선명하게 인쇄할 수 있습니다.</div>`);
+  } else if (S.size === 'print') {
+    const eff = Math.round(img.w / (t.w / t.dpi));
+    msgs.push(`<div class="status ${eff >= t.dpi * 0.9 ? 'ok' : 'warn'}">원본 그대로 이 크기로 인쇄하면 약 <b>${eff}dpi</b>${eff >= t.dpi * 0.9 ? ' — 해상도가 충분합니다.' : ` — ${t.dpi}dpi가 되려면 ${(t.dpi / eff).toFixed(1)}배 확대가 필요합니다.`}</div>`);
+  }
+  if (t.scale > 4 && S.ai !== 'off') msgs.push(`<div class="status warn">4배를 넘는 부분은 AI 4배 이후 일반 확대로 채웁니다. 원본이 아주 작으면 결과가 부드럽게 보일 수 있습니다.</div>`);
+  if (t.scale > 1.3 && S.ai === 'off') msgs.push(`<div class="status warn">AI를 끄고 ${t.scale.toFixed(1)}배 키우면 흐려질 수 있습니다. 화질 개선(AI) 사용을 권장합니다.</div>`);
+  if (t.w * t.h > OUT_MAX_PX) msgs.push(`<div class="status err">결과가 너무 큽니다 (${Math.round(t.w * t.h / 1e6)}MP). 크기를 줄여 주세요.</div>`);
+  if (S.ai !== 'off' && img.w * img.h * 16 > AI_MAX_PX) msgs.push(`<div class="status warn">원본이 커서 AI 처리 전에 일부 줄인 뒤 처리합니다 (메모리 보호).</div>`);
+  note.innerHTML = msgs.join('');
+  // 원본 색 정보
+  if (img.mode === 'cmyk') {
+    const p = img.icc ? `내장 프로파일: ${img.iccName || '이름 없음'}` : `내장 프로파일 없음 → <b>${profileName(S.profile)}</b>로 가정`;
+    cn.innerHTML = `<div class="status">원본이 <b>CMYK</b>입니다. ${p}.${S.color === 'rgb' ? ' RGB(sRGB)로 변환해 저장합니다.' : ''}</div>`;
+  } else if (img.convertedFrom) cn.innerHTML = `<div class="status">원본 프로파일(${img.convertedFrom})을 sRGB로 바꿔 읽었습니다.</div>`;
+  else cn.innerHTML = '';
+}
+function profileName(key) {
+  if (key.startsWith('user:')) return userProfiles.get(key).name;
+  return (PROFILES.find(p => p.key === key) || {}).name || key;
+}
+function fillProfiles() {
+  const sel = $('#profileSel'); sel.innerHTML = '';
+  for (const p of PROFILES) sel.add(new Option(`${p.name} — ${p.note}`, p.key));
+  for (const [k, v] of userProfiles) sel.add(new Option(`${v.name} (불러온 파일)`, k));
+  sel.value = S.profile;
+}
+
+/* ================= 파일 목록 ================= */
+function renderList() {
+  const ul = $('#fileList'); ul.innerHTML = '';
+  for (const it of items) {
+    const li = document.createElement('li'); if (it === cur) li.className = 'on';
+    const badge = it.err ? `<span class="badge" style="background:var(--err-soft);color:var(--err)">오류</span>` :
+      !it.img ? `<span class="badge">읽는 중</span>` :
+      `<span class="badge ${it.img.mode === 'cmyk' ? 'cmyk' : ''}">${it.img.mode.toUpperCase()}</span>`;
+    li.innerHTML = `${badge}<span class="nm" title="${esc(it.name)}">${esc(it.name)}</span><span class="meta">${it.img ? `${it.img.w}×${it.img.h}` : ''}</span>${it.result && !it.stale ? '<span class="badge done">완료</span>' : ''}<button class="x" title="목록에서 빼기">×</button>`;
+    li.addEventListener('click', (e) => { if (e.target.classList.contains('x')) { removeItem(it); return; } select(it); });
+    ul.appendChild(li);
+  }
+}
+const esc = (s) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function removeItem(it) {
+  const i = items.indexOf(it); if (i < 0) return; items.splice(i, 1);
+  if (cur === it) { cur = null; select(items[Math.min(i, items.length - 1)] || null); }
+  renderList(); updateButtons();
+}
+async function addFiles(files) {
+  const list = [...files].filter(f => /image|tif/i.test(f.type) || /\.(jpe?g|png|tiff?|webp|bmp|gif)$/i.test(f.name));
+  if (!list.length) return;
+  const added = list.map(f => ({ id: ++idSeq, file: f, name: f.name, img: null, view: null, result: null, stale: true }));
+  items.push(...added); renderList();
+  if (!cur) select(added[0]);
+  for (const it of added) {
+    try {
+      it.img = await decodeFile(it.file);
+      it.view = await makeView(it.img, it.id);
+    } catch (e) { it.err = e.message || String(e); console.error(e); }
+    renderList();
+    if (it === cur) { showItem(it); }
+  }
+  updateButtons();
+}
+function select(it) {
+  cur = it; renderList(); showItem(it); updateReadout(); updateButtons();
+}
+function showItem(it) {
+  const emp = $('#empty');
+  if (!it) { V.a = V.b = null; emp.hidden = false; emp.innerHTML = '<b>이미지를 넣어 주세요</b><span>왼쪽에 끌어다 놓거나, 이 화면에 바로 놓아도 됩니다.</span>'; draw(); return; }
+  if (it.err) { V.a = V.b = null; emp.hidden = false; emp.innerHTML = `<b>읽을 수 없는 파일입니다</b><span>${esc(it.err)}</span>`; draw(); return; }
+  if (!it.view) { V.a = V.b = null; emp.hidden = false; emp.innerHTML = '<b>읽는 중…</b>'; draw(); return; }
+  emp.hidden = true;
+  V.a = it.view;
+  V.b = it.result && !it.stale ? it.result.view : null;
+  V.iw = V.b ? it.result.img.w : it.img.w; V.ih = V.b ? it.result.img.h : it.img.h;
+  fitView(); updateReadout();
+}
+function markStale() {
+  for (const it of items) if (it.result) it.stale = it.result.key !== settingsKey(it);
+  if (cur) {
+    const show = cur.result && !cur.stale ? cur.result.view : null;
+    if (show !== V.b) showItem(cur);
+  }
+  renderList();
+}
+function settingsKey(it) {
+  const k = { ...S }; delete k.fmt; delete k.quality;
+  return JSON.stringify(k) + '|' + it.id;
+}
+
+/* ================= 화면용 비트맵 ================= */
+const VIEW_MAX = 60e6;
+async function makeView(img, cacheId) {
+  // 표시용 RGBA 비트맵 (CMYK는 인쇄색 미리보기로 변환)
+  let w = img.w, h = img.h, data = img.data, ch = img.ch, mode = img.mode;
+  if (w * h > VIEW_MAX) {
+    const f = Math.sqrt(VIEW_MAX / (w * h)); const nw = Math.round(w * f), nh = Math.round(h * f);
+    data = await work('resize', { data: data.slice(), sw: w, sh: h, ch, dw: nw, dh: nh, premul: ch === 4 && mode === 'rgb' });
+    w = nw; h = nh;
+  }
+  const n = w * h; let rgba;
+  if (mode === 'cmyk') {
+    const prof = img.icc ? { bytes: img.icc, key: 'emb:' + cacheId } : { bytes: await profileBytes(img.assumedProfile || S.profile), key: img.assumedProfile || S.profile };
+    const rgb = await cmykToSrgb(data, n, prof.bytes, prof.key, 1);
+    rgba = mergeAlphaOpaque(rgb, n);
+  } else if (ch === 3) rgba = mergeAlphaOpaque(data, n);
+  else rgba = data;
+  const id = new ImageData(new Uint8ClampedArray(rgba.buffer, rgba.byteOffset, n * 4), w, h);
+  const bmp = await createImageBitmap(id);
+  return { bmp, w, h };
+}
+function mergeAlphaOpaque(rgb, n) { const o = new Uint8Array(n * 4); for (let i = 0; i < n; i++) { o[i * 4] = rgb[i * 3]; o[i * 4 + 1] = rgb[i * 3 + 1]; o[i * 4 + 2] = rgb[i * 3 + 2]; o[i * 4 + 3] = 255; } return o; }
+
+/* ================= 비교 뷰어 ================= */
+const cv = $('#cv'), ctx = cv.getContext('2d');
+const V = { a: null, b: null, iw: 1, ih: 1, z: 1, x: 0, y: 0, split: 0.5 };
+function resizeCanvas() { const r = cv.getBoundingClientRect(), d = devicePixelRatio || 1; cv.width = Math.max(1, r.width * d); cv.height = Math.max(1, r.height * d); draw(); }
+function fitView() {
+  if (!V.a) { draw(); return; }
+  const d = devicePixelRatio || 1, W = cv.width, H = cv.height;
+  V.z = Math.min((W - 40 * d) / V.iw, (H - 40 * d) / V.ih);
+  V.x = (W - V.iw * V.z) / 2; V.y = (H - V.ih * V.z) / 2; draw();
+}
+function zoomAt(f, cx, cy) {
+  const nz = Math.min(32, Math.max(0.01, V.z * f));
+  V.x = cx - (cx - V.x) * nz / V.z; V.y = cy - (cy - V.y) * nz / V.z; V.z = nz; draw();
+}
+function draw() {
+  const W = cv.width, H = cv.height, d = devicePixelRatio || 1;
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, W, H);
+  if (!V.a) { $('#zoomInfo').textContent = ''; return; }
+  V.x = Math.round(V.x); V.y = Math.round(V.y);
+  const dw = Math.round(V.iw * V.z), dh = Math.round(V.ih * V.z);
+  // 투명 배경 체크무늬
+  ctx.save(); ctx.beginPath(); ctx.rect(V.x, V.y, dw, dh); ctx.clip();
+  const cs = 10 * d; ctx.fillStyle = '#fff'; ctx.fillRect(V.x, V.y, dw, dh); ctx.fillStyle = '#e4e4e4';
+  const sx0 = Math.max(V.x, 0), sy0 = Math.max(V.y, 0), sx1 = Math.min(V.x + dw, W), sy1 = Math.min(V.y + dh, H);
+  for (let y = Math.floor((sy0 - V.y) / cs); y * cs + V.y < sy1; y++) for (let x = Math.floor((sx0 - V.x) / cs); x * cs + V.x < sx1; x++) if ((x + y) & 1) ctx.fillRect(V.x + x * cs, V.y + y * cs, cs, cs);
+  ctx.restore();
+  const splitX = V.b ? V.x + dw * V.split : W + 1;
+  // 원본 (일반 확대)
+  ctx.save(); ctx.beginPath(); ctx.rect(0, 0, Math.max(0, Math.min(W, splitX)), H); ctx.clip();
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = V.z * V.iw / V.a.w < 1 ? 'high' : 'low';
+  ctx.drawImage(V.a.bmp, V.x, V.y, dw, dh); ctx.restore();
+  if (V.b) {
+    ctx.save(); ctx.beginPath(); ctx.rect(splitX, 0, W - splitX, H); ctx.clip();
+    const rel = V.z * V.iw / V.b.w;
+    ctx.imageSmoothingEnabled = rel < 1; ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(V.b.bmp, V.x, V.y, dw, dh); ctx.restore();
+    // 분할선
+    ctx.fillStyle = '#fff'; ctx.fillRect(splitX - 1 * d, 0, 2 * d, H);
+    ctx.beginPath(); ctx.arc(splitX, H / 2, 14 * d, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,.25)'; ctx.lineWidth = d; ctx.stroke();
+    ctx.fillStyle = '#333'; ctx.font = `${11 * d}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('◀▶', splitX, H / 2);
+    const tag = (txt, x, al) => { ctx.font = `600 ${12 * d}px "Noto Sans KR",sans-serif`; const tw = ctx.measureText(txt).width + 14 * d; const bx = al === 'r' ? x - tw - 8 * d : x + 8 * d; ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(bx, 10 * d, tw, 22 * d); ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.fillText(txt, bx + 7 * d, 21 * d); };
+    if (splitX > 90 * d) tag('원본', splitX, 'r');
+    if (splitX < W - 90 * d) tag(cur && cur.result && cur.result.img.mode === 'cmyk' ? '결과 (인쇄색 미리보기)' : '결과', splitX, 'l');
+  }
+  $('#zoomInfo').textContent = `${Math.round(V.z / d * 100)}%  ·  ${fmtN(V.iw)}×${fmtN(V.ih)}px`;
+}
+let drag = null;
+cv.addEventListener('pointerdown', (e) => {
+  if (!V.a) return; cv.setPointerCapture(e.pointerId);
+  const d = devicePixelRatio || 1, px = e.offsetX * d;
+  const splitX = V.x + V.iw * V.z * V.split;
+  drag = V.b && Math.abs(px - splitX) < 18 * d ? { t: 'split' } : { t: 'pan', sx: e.offsetX, sy: e.offsetY, x: V.x, y: V.y };
+  cv.classList.add(drag.t === 'split' ? 'split' : 'dragging');
+});
+cv.addEventListener('pointermove', (e) => {
+  const d = devicePixelRatio || 1;
+  if (!drag) { if (V.b) { const splitX = V.x + V.iw * V.z * V.split; cv.classList.toggle('split', Math.abs(e.offsetX * d - splitX) < 18 * d); } return; }
+  if (drag.t === 'split') { V.split = Math.min(1, Math.max(0, (e.offsetX * d - V.x) / (V.iw * V.z))); }
+  else { V.x = drag.x + (e.offsetX - drag.sx) * d; V.y = drag.y + (e.offsetY - drag.sy) * d; }
+  draw();
+});
+const endDrag = () => { drag = null; cv.classList.remove('dragging', 'split'); };
+cv.addEventListener('pointerup', endDrag); cv.addEventListener('pointercancel', endDrag);
+cv.addEventListener('wheel', (e) => { if (!V.a) return; e.preventDefault(); const d = devicePixelRatio || 1; zoomAt(Math.exp(-e.deltaY * 0.0015), e.offsetX * d, e.offsetY * d); }, { passive: false });
+cv.addEventListener('dblclick', fitView);
+$('#zoomFit').addEventListener('click', fitView);
+$('#zoom100').addEventListener('click', () => { if (!V.a) return; const d = devicePixelRatio || 1; zoomAt(d / V.z, cv.width / 2, cv.height / 2); });
+new ResizeObserver(() => { resizeCanvas(); if (V.a) fitView(); }).observe($('#viewer'));
+
+/* ================= 진행 표시 ================= */
+function overlay(on, title) { $('#overlay').hidden = !on; if (title) $('#ovTitle').textContent = title; if (on) prog('', 0); }
+function prog(step, p) { if (step !== null) $('#ovStep').textContent = step; $('#ovBar').style.width = Math.round(Math.max(0, Math.min(1, p)) * 100) + '%'; }
+$('#cancelBtn').addEventListener('click', () => { cancelFlag = true; $('#ovStep').textContent = '취소하는 중…'; });
+const checkCancel = () => { if (cancelFlag) throw new Error('CANCEL'); };
+
+/* ================= 처리 ================= */
+async function processItem(it, label) {
+  const img = it.img; const t = computeTarget(img);
+  if (t.w * t.h > OUT_MAX_PX) throw new Error('결과 크기가 너무 큽니다. 크기를 줄여 주세요.');
+  const P = (s, p) => prog(label ? `${label} — ${s}` : s, p);
+  const n0 = img.w * img.h;
+  const intent = Number(S.intent);
+  // 1) CMYK 원본 프로파일
+  let srcProf = null;
+  if (img.mode === 'cmyk') srcProf = img.icc ? { bytes: img.icc, key: 'emb:' + it.id } : { bytes: await profileBytes(S.profile), key: S.profile };
+  const keepCmyk = img.mode === 'cmyk' && S.color === 'cmyk' && S.ai === 'off';
+  let res; // { w,h, mode, ch, data }
+  if (keepCmyk) {
+    // CMYK 그대로 크기만 조정 (색 왕복 변환 없음)
+    P('크기 조정 중', 0);
+    const d = (t.w === img.w && t.h === img.h) ? img.data : await work('resize', { data: img.data.slice(), sw: img.w, sh: img.h, ch: 4, dw: t.w, dh: t.h, premul: false }, p => P('크기 조정 중', p));
+    res = { w: t.w, h: t.h, mode: 'cmyk', ch: 4, data: d };
+  } else {
+    // 2) RGB 작업본 만들기
+    let rgb, alpha = null;
+    if (img.mode === 'cmyk') { P('CMYK → RGB 변환 중', 0); rgb = await cmykToSrgb(img.data, n0, srcProf.bytes, srcProf.key, intent, p => P('CMYK → RGB 변환 중', p)); }
+    else if (img.ch === 4) { rgb = stripAlpha(img.data, n0); alpha = alphaOf(img.data, n0); }
+    else rgb = img.data;
+    checkCancel();
+    let outRGB;
+    if (S.ai !== 'off') {
+      if (!AI.ready) throw new Error('AI 엔진이 준비되지 않았습니다');
+      // 메모리 보호: 4배 중간 결과가 너무 크면 먼저 줄임
+      let aw = img.w, ah = img.h, ain = rgb;
+      let pre = Math.min(1, Math.sqrt(AI_MAX_PX / (n0 * 16)));
+      if (pre < 1) {
+        aw = Math.max(1, Math.round(img.w * pre)); ah = Math.max(1, Math.round(img.h * pre));
+        P('AI 준비: 원본 줄이는 중', 0);
+        ain = await work('resize', { data: rgb.slice(), sw: img.w, sh: img.h, ch: 3, dw: aw, dh: ah, premul: false });
+      }
+      P('AI 모델 준비 중', 0); await getModel(S.ai);
+      const t0 = performance.now();
+      const up = await aiUpscale(ain, aw, ah, S.ai, (p, d, tot) => {
+        const el = (performance.now() - t0) / 1000, left = d > 1 ? el / d * (tot - d) : 0;
+        P(`AI 화질 개선 중 (${d}/${tot} 조각${left > 3 ? `, 약 ${Math.ceil(left)}초 남음` : ''})`, p);
+      }, () => cancelFlag);
+      checkCancel();
+      let aiOut = up.data;
+      if (up.w !== t.w || up.h !== t.h) aiOut = await work('resize', { data: up.data, sw: up.w, sh: up.h, ch: 3, dw: t.w, dh: t.h, premul: false }, p => P('목표 크기로 맞추는 중', p), [up.data.buffer]);
+      checkCancel();
+      if (S.aiStrength < 100) {
+        P('원본과 섞는 중', 0);
+        const base = (img.w === t.w && img.h === t.h) ? rgb : await work('resize', { data: rgb.slice(), sw: img.w, sh: img.h, ch: 3, dw: t.w, dh: t.h, premul: false });
+        const k = S.aiStrength / 100;
+        for (let i = 0; i < aiOut.length; i++) aiOut[i] = aiOut[i] * k + base[i] * (1 - k) + 0.5;
+      }
+      outRGB = aiOut;
+      if (alpha) {
+        P('투명 영역 맞추는 중', 0);
+        alpha = (img.w === t.w && img.h === t.h) ? alpha : await work('resize', { data: alpha, sw: img.w, sh: img.h, ch: 1, dw: t.w, dh: t.h, premul: false });
+      }
+    } else {
+      P('크기 조정 중', 0);
+      if (alpha) {
+        const rgba = mergeAlpha(rgb, alpha, n0, true);
+        const r = (img.w === t.w && img.h === t.h) ? rgba : await work('resize', { data: rgba, sw: img.w, sh: img.h, ch: 4, dw: t.w, dh: t.h, premul: true }, p => P('크기 조정 중', p));
+        const n = t.w * t.h; outRGB = stripAlpha(r, n); alpha = alphaOf(r, n);
+      } else {
+        outRGB = (img.w === t.w && img.h === t.h) ? rgb.slice() : await work('resize', { data: rgb.slice(), sw: img.w, sh: img.h, ch: 3, dw: t.w, dh: t.h, premul: false }, p => P('크기 조정 중', p));
+      }
+    }
+    checkCancel();
+    const n = t.w * t.h;
+    if (S.color === 'cmyk') {
+      let src3 = outRGB;
+      if (alpha) { src3 = flattenWhite(mergeAlpha(outRGB, alpha, n, true), n); }
+      const dst = await openProfile(await profileBytes(S.profile), S.profile);
+      P('RGB → CMYK 변환 중', 0);
+      const cmyk = await cmsRun(CMS.srgb, TYPE_RGB_8, 3, dst, TYPE_CMYK_8, 4, intent, src3, n, p => P('RGB → CMYK 변환 중', p));
+      res = { w: t.w, h: t.h, mode: 'cmyk', ch: 4, data: cmyk };
+    } else {
+      res = alpha ? { w: t.w, h: t.h, mode: 'rgb', ch: 4, data: mergeAlpha(outRGB, alpha, n, true) } : { w: t.w, h: t.h, mode: 'rgb', ch: 3, data: outRGB };
+    }
+  }
+  // CMYK 결과: 출력 프로파일
+  if (res.mode === 'cmyk') {
+    if (keepCmyk) {
+      const dstBytes = await profileBytes(S.profile);
+      const same = !img.icc || sameBytes(img.icc, dstBytes);
+      if (!same) {
+        P('CMYK 프로파일 변환 중', 0);
+        const sh = await openProfile(img.icc, 'emb:' + it.id), dh = await openProfile(dstBytes, S.profile);
+        res.data = await cmsRun(sh, TYPE_CMYK_8, 4, dh, TYPE_CMYK_8, 4, intent, res.data, res.w * res.h, p => P('CMYK 프로파일 변환 중', p));
+      }
+    }
+    res.icc = await profileBytes(S.profile); res.iccName = profileName(S.profile);
+    res.assumedProfile = S.profile;
+  } else res.icc = SRGB_ICC;
+  res.dpi = t.dpi;
+  P('미리보기 만드는 중', 1);
+  const view = await makeView(res, 'res' + it.id);
+  return { img: res, view, key: settingsKey(it) };
+}
+function sameBytes(a, b) { if (a.length !== b.length) return false; for (let i = 0; i < a.length; i += 97) if (a[i] !== b[i]) return false; return true; }
+
+async function ensureResult(it, label) {
+  if (it.result && it.result.key === settingsKey(it)) return it.result;
+  if (it.result && it.result.view) it.result.view.bmp.close && it.result.view.bmp.close();
+  it.result = null;
+  it.result = await processItem(it, label); it.stale = false;
+  return it.result;
+}
+async function guarded(title, fn) {
+  if (busy) return; busy = true; cancelFlag = false; updateButtons(); overlay(true, title);
+  try { await fn(); }
+  catch (e) {
+    if (e.message !== 'CANCEL') { console.error(e); alert('처리 중 문제가 생겼습니다.\n\n' + (e.message || e)); }
+  } finally { busy = false; overlay(false); updateButtons(); renderList(); }
+}
+$('#runBtn').addEventListener('click', () => guarded('미리보기 만드는 중', async () => {
+  await ensureResult(cur); showItem(cur); V.split = 0.5; draw();
+}));
+$('#saveBtn').addEventListener('click', () => guarded('저장 파일 만드는 중', async () => {
+  const r = await ensureResult(cur); showItem(cur);
+  const { bytes, name } = await encodeResult(cur, r);
+  download(new Blob([bytes], { type: mime(S.fmt) }), name);
+}));
+$('#saveAllBtn').addEventListener('click', () => guarded('전체 처리 중', async () => {
+  const list = items.filter(i => i.img);
+  if (list.length === 1) { const r = await ensureResult(list[0]); const { bytes, name } = await encodeResult(list[0], r); download(new Blob([bytes], { type: mime(S.fmt) }), name); return; }
+  const zip = new JSZip(); const used = new Set();
+  for (let i = 0; i < list.length; i++) {
+    const it = list[i]; const label = `${i + 1}/${list.length} ${it.name}`;
+    const r = await ensureResult(it, label);
+    const { bytes, name } = await encodeResult(it, r, label);
+    let nm = name, k = 2; while (used.has(nm)) nm = name.replace(/(\.[^.]+)$/, `_${k++}$1`); used.add(nm);
+    zip.file(nm, bytes);
+    if (it === cur) showItem(cur);
+    renderList();
+  }
+  prog('ZIP 파일 만드는 중', 0.99);
+  const blob = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
+  download(blob, `해내미_업스케일_${list.length}개.zip`);
+}));
+function mime(f) { return { jpg: 'image/jpeg', png: 'image/png', tiff: 'image/tiff', pdf: 'application/pdf' }[f]; }
+async function encodeResult(it, r, label) {
+  const img = r.img, n = img.w * img.h;
+  const P = (s, p) => prog(label ? `${label} — ${s}` : s, p);
+  const fmt = S.fmt;
+  let data = img.data, ch = img.ch, alpha = null;
+  if (img.mode === 'rgb' && ch === 4 && (fmt === 'jpg' || fmt === 'pdf')) {
+    if (fmt === 'jpg') { data = flattenWhite(img.data, n); ch = 3; }
+    else { alpha = alphaOf(img.data, n); data = stripAlpha(img.data, n); ch = 3; }
+  }
+  const args = { data: data === img.data ? data.slice() : data, w: img.w, h: img.h, ch, mode: img.mode, dpi: img.dpi, icc: img.icc, profileName: img.iccName, quality: S.quality, alpha };
+  const label2 = { jpg: 'JPG', png: 'PNG', tiff: 'TIFF', pdf: 'PDF' }[fmt];
+  P(`${label2} 파일 만드는 중`, 0);
+  const bytes = await work(fmt === 'jpg' ? 'jpeg' : fmt, args, p => P(`${label2} 파일 만드는 중`, p), [args.data.buffer]);
+  const base = it.name.replace(/\.[^.]+$/, '');
+  const ext = { jpg: 'jpg', png: 'png', tiff: 'tif', pdf: 'pdf' }[fmt];
+  return { bytes, name: `${base}_${img.w}x${img.h}${img.mode === 'cmyk' ? '_CMYK' : ''}.${ext}` };
+}
+function download(blob, name) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+}
+
+/* ================= 입력 연결 ================= */
+const drop = $('#drop');
+$('#fileInput').addEventListener('change', (e) => { addFiles(e.target.files); e.target.value = ''; });
+['dragenter', 'dragover'].forEach(ev => document.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave', 'drop'].forEach(ev => document.addEventListener(ev, (e) => { e.preventDefault(); if (ev === 'drop' || e.target === document.documentElement) drop.classList.remove('over'); }));
+document.addEventListener('drop', (e) => { if (e.dataTransfer && e.dataTransfer.files.length) addFiles(e.dataTransfer.files); });
+
+segInit('aiSeg', 'ai');
+$('#aiStrength').addEventListener('input', (e) => { S.aiStrength = +e.target.value; $('#aiStrengthV').textContent = S.aiStrength + '%'; refresh(); });
+segInit('sizeSeg', 'size', () => { if (S.size === 'custom') syncCustomFields(); });
+chipsInit('scaleChips', 'scale', '#scaleVal');
+chipsInit('screenChips', 'screenLong', '#screenLong');
+segInit('screenAutoSeg', 'screenAuto', null, true);
+segInit('printAutoSeg', 'printAuto', null, true);
+segInit('dpiSeg', 'printDpi', null, true);
+$('#paper').addEventListener('change', (e) => { S.paper = e.target.value; refresh(); });
+$('#paperW').addEventListener('input', (e) => { S.paperW = +e.target.value; refresh(); });
+$('#paperH').addEventListener('input', (e) => { S.paperH = +e.target.value; refresh(); });
+segInit('fitSeg', 'fit');
+$('#autoOrient').addEventListener('change', (e) => { S.autoOrient = e.target.checked; refresh(); });
+$('#bleed').addEventListener('change', (e) => { S.bleed = e.target.checked; refresh(); });
+$('#bleedMm').addEventListener('input', (e) => { S.bleedMm = +e.target.value || 0; refresh(); });
+segInit('unitSeg', 'unit', () => syncCustomFields());
+function syncCustomFields() {
+  const img = curSrc(); if (!img) return;
+  const dpi = S.customDpi || 300;
+  if (S.unit === 'px') { S.cw = img.w; S.chh = img.h; }
+  else if (S.unit === 'mm') { S.cw = +mm(img.w, dpi).toFixed(1); S.chh = +mm(img.h, dpi).toFixed(1); }
+  else { S.cw = 100; S.chh = 100; }
+  $('#cw').value = S.cw; $('#chh').value = S.chh;
+}
+function customInput(which) {
+  const img = curSrc(); const v = +$(which === 'w' ? '#cw' : '#chh').value;
+  if (which === 'w') S.cw = v; else S.chh = v;
+  if (S.lock && img && v > 0) {
+    if (S.unit === 'pct') { if (which === 'w') S.chh = v; else S.cw = v; }
+    else { const r = img.h / img.w; if (which === 'w') S.chh = +(v * r).toFixed(S.unit === 'px' ? 0 : 1); else S.cw = +(v / r).toFixed(S.unit === 'px' ? 0 : 1); }
+    $(which === 'w' ? '#chh' : '#cw').value = which === 'w' ? S.chh : S.cw;
+  }
+  refresh();
+}
+$('#cw').addEventListener('input', () => customInput('w'));
+$('#chh').addEventListener('input', () => customInput('h'));
+$('#lockRatio').addEventListener('change', (e) => { S.lock = e.target.checked; if (S.lock) customInput('w'); });
+$('#customDpi').addEventListener('input', (e) => { S.customDpi = +e.target.value || 300; refresh(); });
+segInit('colorSeg', 'color', () => { if (S.color === 'cmyk') initCMS().catch(() => {}); });
+$('#profileSel').addEventListener('change', (e) => { S.profile = e.target.value; refreshCmykViews(); refresh(); });
+$('#intentSel').addEventListener('change', (e) => { S.intent = +e.target.value; refresh(); });
+$('#iccInput').addEventListener('change', async (e) => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  try {
+    const bytes = new Uint8Array(await f.arrayBuffer());
+    if (iccSpace(bytes) !== 'CMYK') throw new Error('CMYK 프로파일이 아닙니다 (' + (iccSpace(bytes) || '알 수 없음') + ')');
+    await openProfile(bytes, null);
+    const key = 'user:' + (userProfiles.size + 1);
+    userProfiles.set(key, { name: iccDesc(bytes) || f.name, bytes });
+    S.profile = key; fillProfiles(); refreshCmykViews(); refresh();
+  } catch (err) { alert('프로파일을 불러올 수 없습니다.\n' + err.message); }
+});
+segInit('fmtSeg', 'fmt');
+$('#quality').addEventListener('input', (e) => { S.quality = +e.target.value; $('#qualityV').textContent = S.quality; });
+// 내장 프로파일이 없는 CMYK 원본은 프로파일을 바꾸면 미리보기 색도 바뀜
+async function refreshCmykViews() {
+  for (const it of items) if (it.img && it.img.mode === 'cmyk' && !it.img.icc) {
+    try { it.view = await makeView(it.img, it.id); } catch (e) {}
+    if (it === cur) showItem(it);
+  }
+}
+
+fillProfiles();
+refresh();
+resizeCanvas();
+initAI();
+window.__HNM = { S, items, processItem, ensureResult, encodeResult, select, refresh, addFiles, AI, CMS, computeTarget, aiUpscale, getModel, work };
+</script>
+</body>
+</html>

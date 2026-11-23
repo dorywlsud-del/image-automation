@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>해내미 업스케일 사용설명서</title>
+<style>
+@page { size: A4; margin: 13mm 15mm; }
+:root { --ink:#24262b; --muted:#6b6f78; --line:#e2e0da; --soft:#f6f5f1; --green:#00a651; --green-soft:#e6f6ec; --warn:#a86400; --warn-soft:#fdf3e1; }
+* { box-sizing: border-box; }
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { margin: 0; font: 10pt/1.6 "Malgun Gothic", sans-serif; color: var(--ink); word-break: keep-all; }
+h1 { font-size: 20pt; margin: 0 0 1mm; letter-spacing: -0.02em; }
+.lead { color: var(--muted); margin: 0 0 5mm; }
+h2 { font-size: 12.5pt; margin: 4mm 0 2mm; padding-left: 3mm; border-left: 3px solid var(--green); }
+p { margin: 0 0 2mm; }
+img { display: block; width: 70%; margin: 0 auto; border: 1px solid var(--line); border-radius: 2mm; }
+ol.steps { list-style: none; counter-reset: s; padding: 0; margin: 2mm 0 3mm; }
+ol.steps > li { counter-increment: s; position: relative; padding: 0 0 2mm 9mm; }
+ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .3mm; width: 6mm; height: 6mm; border-radius: 50%; background: var(--green); color: #fff; font-size: 9pt; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+table { width: 100%; border-collapse: collapse; margin: 1mm 0 3mm; font-size: 9.3pt; }
+th, td { border-bottom: 1px solid var(--line); padding: 1.6mm 2.4mm; text-align: left; vertical-align: top; }
+th { background: var(--soft); }
+td:first-child { font-weight: 700; white-space: nowrap; width: 26mm; }
+.box { border-radius: 2mm; padding: 2.5mm 4mm; margin: 3mm 0; font-size: 9.3pt; background: var(--green-soft); }
+.box.note { background: var(--warn-soft); }
+.box b { color: #007a3c; } .box.note b { color: var(--warn); }
+ul { margin: 0; padding-left: 4.5mm; } li { margin-bottom: .6mm; }
+.b { font-weight: 700; }
+</style>
+</head>
+<body>
+
+<h1>해내미 업스케일 사용설명서</h1>
+<p class="lead">이미지를 AI로 선명하게 키우고, 화면용·인쇄용 크기와 RGB/CMYK로 저장하는 도구입니다. 설치도, 인터넷도 필요 없이 HTML 파일을 크롬으로 열면 바로 쓸 수 있습니다.</p>
+
+<img src="img/main.png" alt="해내미 업스케일 화면">
+
+<h2>이렇게 쓰세요 (4단계)</h2>
+<ol class="steps">
+  <li><span class="b">이미지 넣기</span> — 왼쪽 상자(또는 오른쪽 화면)에 이미지를 끌어다 놓습니다. 여러 장도 한 번에 됩니다.</li>
+  <li><span class="b">화질 개선 고르기</span> — 사진은 <span class="b">사진·일반</span>, 그림·만화는 <span class="b">일러스트·만화</span>. 크기만 바꿀 땐 <span class="b">사용 안 함</span>.</li>
+  <li><span class="b">크기 정하기</span> — 아래 표에서 용도에 맞는 탭을 고릅니다.</li>
+  <li><span class="b">미리보기 만들기 → 저장</span> — 결과를 확인하고 <span class="b">이 파일 저장</span>, 여러 장이면 <span class="b">전체 저장(ZIP)</span>.</li>
+</ol>
+
+<h2>크기 · 해상도</h2>
+<table>
+  <tr><th>탭</th><th>언제 쓰나요</th></tr>
+  <tr><td>배율</td><td>1·2·3·4배로 키웁니다. <span class="b">1배</span>는 크기 그대로 화질만 개선.</td></tr>
+  <tr><td>화면용</td><td>웹·모니터·발표 자료. 자동(최대 크기) 또는 긴 변 1280~3840px 선택, 72dpi 저장.</td></tr>
+  <tr><td>인쇄용</td><td>책·인쇄물. 300/350/600dpi 선택 후 자동 또는 판형(A4, 신국판, 크라운판 등)에 맞춤. 도련 포함 가능.</td></tr>
+  <tr><td>직접 지정</td><td>가로·세로를 px, mm, %로 직접 입력.</td></tr>
+</table>
+
+<h2>색상 · 저장 형식</h2>
+<ul>
+  <li><span class="b">RGB</span>: 화면·웹용. <span class="b">CMYK</span>: 인쇄소 납품용 (Japan Color 2001 Coated 등 선택, 인쇄소 ICC 파일도 불러올 수 있음).</li>
+  <li><span class="b">JPG</span> 용량 작음 · <span class="b">PNG</span> 투명 배경 유지 · <span class="b">TIFF / PDF</span> 인쇄용(CMYK 가능).</li>
+</ul>
+
+<div class="box"><b>TIP</b> 미리보기 화면의 가운데 선을 좌우로 끌면 원본과 결과를 비교할 수 있습니다. 휠로 확대, <span class="b">100%</span> 버튼으로 실제 크기 확인.</div>
+<div class="box note"><b>참고</b> 인터넷 없이도 모든 기능이 작동합니다(HTML 파일 하나만 옮기면 됨). 이미지는 내 컴퓨터 안에서만 처리되며 외부로 전송되지 않습니다. 큰 이미지는 처리에 시간이 걸릴 수 있어요(취소 가능).</div>
+
+</body>
+</html>

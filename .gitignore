@@ -1,0 +1,5 @@
+# 다른 회사 프로그램(upscayl) 원본·설치파일: 너무 크고 재배포 대상 아님
+이미지 업/upscayl-*
+node_modules/
+.claude/settings.local.json
+*.log

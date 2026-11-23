@@ -1,0 +1,39 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 776.69 549.92] /TrimBox [8.50 8.50 768.19 541.42] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+5 0 obj
+<< /Length 478 >>
+stream
+0.93 0.9 0.84 rg 0.00 0.00 776.69 549.92 re f
+0.14 0.2 0.33 rg 8.50 0.00 362.83 549.92 re f
+0.85 0.34 0.24 rg 371.34 0.00 34.02 549.92 re f
+0.85 0.34 0.24 rg 477.92 217.13 217.70 217.70 re f
+BT 0.1 0.12 0.2 rg /F1 26 Tf 445.04 121.89 Td (SAMPLE BOOK) Tj ET
+BT 0.1 0.12 0.2 rg /F1 10 Tf 445.04 87.87 Td (front 128 x 188 mm / spine 12 mm) Tj ET
+BT 1 1 1 rg /F1 10 Tf 48.19 456.38 Td (BACK COVER) Tj ET
+q 0 -1 1 0 392.60 498.90 cm BT 1 1 1 rg /F1 9 Tf 0 0 Td (SAMPLE BOOK) Tj ET Q
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000282 00000 n 
+0000000357 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+885
+%%EOF
